@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GuideApi } from '@/features/guide/ui/guide-api'
+import { GuideCommon } from '@/features/guide/ui/guide-common'
 
 export const metadata: Metadata = {
   title: '사용자 가이드 | Next Startkit',
@@ -28,7 +29,9 @@ export default function GuidePage() {
         </TabsContent>
 
         <TabsContent value="common">
-          <div className="py-6">{/* <GuideCommon /> */}</div>
+          <div className="py-6">
+            <GuideCommon />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

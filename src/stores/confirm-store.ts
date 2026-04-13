@@ -25,7 +25,19 @@ export const useConfirmStore = create<ConfirmStore>((set) => ({
   confirmText: '확인',
   cancelText: '취소',
 
-  setConfirm: (params) => set({ isOpen: true, type: 'confirm', cancelText: '취소', ...params }),
-  setAlert: (params) => set({ isOpen: true, type: 'alert', ...params }),
+  setConfirm: (params) => {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+
+    set({ isOpen: true, type: 'confirm', cancelText: '취소', ...params })
+  },
+  setAlert: (params) => {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+
+    set({ isOpen: true, type: 'alert', ...params })
+  },
   close: () => set({ isOpen: false }),
 }))

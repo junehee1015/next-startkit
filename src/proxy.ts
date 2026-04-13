@@ -16,7 +16,7 @@ export async function proxy(request: NextRequest) {
 
   if (!accessToken && refreshToken) {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/refresh`, {
+      const response = await fetch(`api/refresh`, {
         method: 'POST',
         cache: 'no-store',
         headers: {
