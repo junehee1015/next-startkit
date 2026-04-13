@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { LogOut, User as UserIcon, Home } from 'lucide-react'
+import { LogOut, User as UserIcon, Home, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/features/auth/model'
 import { useLogout } from '@/features/auth/model'
 
@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/use-confirm'
+import { useLoadingStore } from '@/stores/loading-store'
 
 const BREADCRUMB_NAMES: Record<string, string> = {
   dashboard: '대시보드',
@@ -20,14 +22,31 @@ export function Header() {
   const router = useRouter()
   const pathname = usePathname()
   const { user } = useAuthStore()
+  const { openConfirm } = useConfirm()
+  const { setIsLoading, setLoadingMessage } = useLoadingStore()
   const { executeAsync, isExecuting } = useLogout()
 
   const pathSegments = pathname.split('/').filter(Boolean)
 
   const handleLogout = async () => {
-    await executeAsync()
-    toast.error('로그아웃 되었습니다.')
-    router.replace('/login')
+    openConfirm({
+      title: '로그아웃',
+      description: '로그아웃 하시겠습니까?',
+      confirmText: '로그아웃',
+      cancelText: '취소',
+      onConfirm: async () => {
+        setIsLoading(true)
+        setLoadingMessage('로그아웃 중 입니다...')
+
+        try {
+          await executeAsync()
+        } finally {
+          setIsLoading(false)
+          toast.error('로그아웃 되었습니다.')
+          router.replace('/login')
+        }
+      },
+    })
   }
 
   return (
@@ -73,7 +92,7 @@ export function Header() {
             <DropdownMenuItem onClick={() => router.push('/settings/profile')}>프로필 설정</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} disabled={isExecuting} className="text-red-600 focus:bg-red-50 focus:text-red-600">
-              <LogOut className="mr-2 h-4 w-4" />
+              {isExecuting ? <Loader2 className="animate-spin" /> : <LogOut />}
               로그아웃
             </DropdownMenuItem>
           </DropdownMenuContent>
