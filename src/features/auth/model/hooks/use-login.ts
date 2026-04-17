@@ -23,14 +23,12 @@ export const useLogin = ({ onSuccessCallback, onErrorCallback }: UseLoginProps) 
 
   const { execute, isExecuting } = useAction(loginAction, {
     onSuccess: ({ data }) => {
-      if (data?.user) {
-        setUser(data.user)
-        onSuccessCallback?.()
-      }
+      if (data.user) setUser(data.user)
+      if (onSuccessCallback) onSuccessCallback()
     },
     onError: ({ error }) => {
       console.error(error)
-      onErrorCallback?.()
+      if (onErrorCallback) onErrorCallback()
     },
   })
 

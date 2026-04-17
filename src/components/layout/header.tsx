@@ -3,15 +3,14 @@
 import { Fragment } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { LogOut, User as UserIcon, Home, Loader2 } from 'lucide-react'
-import { useAuthStore } from '@/features/auth/model'
-import { useLogout } from '@/features/auth/model'
+import { useAuthStore, useLogout } from '@/features/auth/model'
 
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/use-confirm'
-import { useLoadingStore } from '@/stores/loading-store'
+import { GlobalLoading } from '../global-loading'
 
 const BREADCRUMB_NAMES: Record<string, string> = {
   dashboard: '대시보드',
@@ -21,9 +20,8 @@ const BREADCRUMB_NAMES: Record<string, string> = {
 export function Header() {
   const router = useRouter()
   const pathname = usePathname()
-  const { user } = useAuthStore()
+  const user = useAuthStore((state) => state.user)
   const { openConfirm } = useConfirm()
-  const { setIsLoading, setLoadingMessage } = useLoadingStore()
   const { executeAsync, isExecuting } = useLogout()
 
   const pathSegments = pathname.split('/').filter(Boolean)
@@ -35,13 +33,9 @@ export function Header() {
       confirmText: '로그아웃',
       cancelText: '취소',
       onConfirm: async () => {
-        setIsLoading(true)
-        setLoadingMessage('로그아웃 중 입니다...')
-
         try {
           await executeAsync()
         } finally {
-          setIsLoading(false)
           toast.error('로그아웃 되었습니다.')
           router.replace('/login')
         }
@@ -76,14 +70,14 @@ export function Header() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 cursor-pointer">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex justify-center items-center">
               <Button variant="ghost" size="icon" className="rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <UserIcon className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
               </Button>
-              {user && <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{user.name}</span>}
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{user?.name}</span>
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
@@ -98,6 +92,8 @@ export function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {isExecuting && <GlobalLoading message="로그아웃 중입니다..." />}
     </header>
   )
 }

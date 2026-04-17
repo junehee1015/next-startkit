@@ -1,5 +1,6 @@
 export type { LoginInput } from './schema'
 export { loginSchema } from './schema'
-export { useAuthStore } from './store'
+export { useAuthStore, AuthContext, createAuthStore } from './store'
+export type { AuthProps, AuthState, AuthStore } from './store'
 export { useLogin } from './hooks/use-login'
 export { useLogout } from './hooks/use-logout'

@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers'
 import { actionClient } from '@/lib/safe-action'
 import { loginSchema } from '../model'
-import { serverApi } from '@/lib/server-api'
+// import { serverApi } from '@/lib/server-api'
 
 export const loginAction = actionClient.inputSchema(loginSchema).action(async ({ parsedInput }) => {
   const { email, password } = parsedInput
@@ -35,6 +35,13 @@ export const loginAction = actionClient.inputSchema(loginSchema).action(async ({
     maxAge: 60 * 60 * 1,
   })
 
+  cookieStore.set('user', JSON.stringify(mockUser), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  })
+
   return { user: mockUser }
 })
 
@@ -44,4 +51,5 @@ export const logoutAction = actionClient.action(async () => {
   const cookieStore = await cookies()
   cookieStore.delete('refreshToken')
   cookieStore.delete('accessToken')
+  cookieStore.delete('user')
 })
