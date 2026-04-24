@@ -4,27 +4,30 @@ import { ROUTES } from './constants/routes'
 
 const refreshLocks = new Map<string, Promise<string | null>>()
 
-async function refreshAccessToken(origin: string, refreshToken: string) {
+async function refreshAccessToken(refreshToken: string) {
   if (refreshLocks.has(refreshToken)) {
     return refreshLocks.get(refreshToken)
   }
 
   const refreshPromise = (async () => {
     try {
-      const response = await fetch(`${origin}/api/refresh`, {
-        method: 'POST',
-        cache: 'no-store',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: `refreshToken=${refreshToken}`,
-        },
-      })
+      // 내부 백엔드가 아닌 실제 백엔드 직접 호출
+      // const response = await fetch(`${origin}/api/refresh`, {
+      //   method: 'POST',
+      //   cache: 'no-store',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     Cookie: `refreshToken=${refreshToken}`,
+      //   },
+      // })
 
-      if (response.ok) {
-        const data = await response.json()
-        return data.accessToken as string
-      }
-      return null
+      // if (response.ok) {
+      //   const data = await response.json()
+      //   return data.accessToken as string
+      // }
+
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      return 'mock-new-access-token-' + Date.now()
     } catch (error) {
       console.error('[Proxy] Silent Refresh Failed:', error)
       return null
@@ -47,7 +50,7 @@ export async function proxy(request: NextRequest) {
   let isRefresh: boolean = false
 
   if (!accessToken && refreshToken && user) {
-    const newAccessToken = await refreshAccessToken(request.nextUrl.origin, refreshToken)
+    const newAccessToken = await refreshAccessToken(refreshToken)
 
     if (newAccessToken) {
       accessToken = newAccessToken
@@ -55,6 +58,7 @@ export async function proxy(request: NextRequest) {
 
       request.cookies.set('accessToken', accessToken)
       request.headers.set('Authorization', `Bearer ${accessToken}`)
+      request.headers.set('cookie', request.cookies.toString())
     }
   }
 
@@ -63,12 +67,23 @@ export async function proxy(request: NextRequest) {
   const isGuestOnly = ROUTES.GUEST_ONLY.some((route) => pathname.startsWith(route))
 
   if (isGuestOnly && isAuthenticated) {
-    return NextResponse.redirect(new URL('/', request.url))
+    const redirectResponse = NextResponse.redirect(new URL('/', request.url))
+
+    if (isRefresh && accessToken) {
+      redirectResponse.cookies.set('accessToken', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 15,
+      })
+    }
+
+    return redirectResponse
   }
 
   if (!isPublic && !isGuestOnly && !isAuthenticated) {
     const loginUrl = new URL('/login', request.url)
-
     const redirectResponse = NextResponse.redirect(loginUrl)
     redirectResponse.cookies.delete('accessToken')
     redirectResponse.cookies.delete('refreshToken')
@@ -88,7 +103,7 @@ export async function proxy(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 1,
+      maxAge: 60 * 15,
     })
   }
 

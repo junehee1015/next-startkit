@@ -9,20 +9,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Refresh token is required' }, { status: 401 })
     }
 
-    const newAccessToken = 'mock-new-access-token-' + Date.now()
-    const response = NextResponse.json({ accessToken: newAccessToken })
+    // const refreshResponse = await fetch(`${process.env.EXTERNAL_API_URL}/auth/refresh`, {
+    //   method: 'POST',
+    //   headers: { Cookie: `refreshToken=${refreshToken}` },
+    // })
 
-    response.cookies.set('accessToken', newAccessToken, {
+    // const data = await refreshResponse.json()
+    // const newAccessToken = data.accessToken
+
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    const newAccessToken = 'mock-new-access-token-' + Date.now()
+    const nextResponse = NextResponse.json({ accessToken: newAccessToken })
+
+    nextResponse.cookies.set('accessToken', newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 1,
+      maxAge: 60 * 15,
     })
 
-    return response
+    return nextResponse
   } catch (error) {
     console.error('Refresh Verification Failed:', error)
+    const errorResponse = NextResponse.json({ message: 'Invalid or expired refresh token' }, { status: 401 })
+    errorResponse.cookies.delete('accessToken')
+    errorResponse.cookies.delete('refreshToken')
+    errorResponse.cookies.delete('user')
     return NextResponse.json({ message: 'Invalid or expired refresh token' }, { status: 401 })
   }
 }

@@ -32,7 +32,7 @@ export const loginAction = actionClient.inputSchema(loginSchema).action(async ({
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 1,
+    maxAge: 60 * 15,
   })
 
   cookieStore.set('user', JSON.stringify(mockUser), {
