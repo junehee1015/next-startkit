@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { cn } from '@/lib/utils'
 import { Providers } from '@/components/providers'
-import { cookies } from 'next/headers'
 import { AuthProvider } from '@/features/auth/ui/auth-provider'
+import { getSession } from '@/features/auth/api/sesstion'
 
 export const metadata: Metadata = {
   title: 'Next Startkit',
@@ -15,9 +15,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const cookieStore = await cookies()
-  const userCookie = cookieStore.get('user')?.value
-  const user = userCookie ? JSON.parse(userCookie) : null
+  const user = await getSession()
 
   return (
     <html lang="ko" className={cn('font-sans')}>

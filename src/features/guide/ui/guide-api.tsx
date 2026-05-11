@@ -36,7 +36,6 @@ export function GuideApi() {
           통신(API Layer), 비즈니스 로직(Custom Hook), 렌더링(UI Component)을 완벽하게 분리하여 유지보수성과 재사용성을 높입니다.
         </p>
       </div>
-
       {/* --- STEP 0 --- */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
@@ -201,7 +200,6 @@ export function GuideApi() {
           <span className={op}>{'}'})</span>
         </VSCodeBlock>
       </section>
-
       {/* --- STEP 1 --- */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
@@ -262,7 +260,6 @@ export function GuideApi() {
           <span className={op}>{'}'}</span>
         </VSCodeBlock>
       </section>
-
       {/* --- STEP 2 --- */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
@@ -307,7 +304,6 @@ export function GuideApi() {
           <span className={op}>{'}'}</span>
         </VSCodeBlock>
       </section>
-
       {/* --- STEP 3 --- */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
@@ -418,37 +414,39 @@ export function GuideApi() {
           <span className={op}>{'}'}</span>
         </VSCodeBlock>
       </section>
-
       {/* --- STEP 4 --- */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
-          <span className="rounded bg-sky-100 px-2 py-1 text-sm font-bold text-sky-700">STEP 4</span>
-          <h3 className="text-xl font-bold text-gray-800">UI 렌더링 및 컴포넌트 조합</h3>
+          <span className="rounded bg-sky-100 px-2 py-1 text-sm font-bold text-sky-700">STEP 4</span> <h3 className="text-xl font-bold text-gray-800">서버/클라이언트 상태 동기화 (Cache Seeding)</h3>
         </div>
         <p className="text-sm text-gray-600">
-          GET(조회)은 <strong>서버 컴포넌트</strong>가 SEO 최적화를 담당하고, POST(작성) 폼은 <strong>클라이언트 컴포넌트</strong>가 훅을 호출하여 제어합니다.
-          <br />
-          화면이 멈추지 않도록 API 조회를 자식 서버 컴포넌트로 격리하고 <code>&lt;Suspense&gt;</code>를 활용합니다.
+          서버 컴포넌트에서 초기 데이터(SEO)를 가져온 뒤, 이를 클라이언트의 <code>TanStack Query</code> 전역 캐시에 동기화합니다. <br /> 최상단 <code>Feature</code> 컴포넌트에서 <code>initialData</code>로 씨앗을 심어주면(Seeding), 하위 컴포넌트들은 Props Drilling 없이 즉각적이고 부드러운 UI
+          업데이트(Optimistic Update, 필터링 등)를 수행할 수 있습니다.
         </p>
-
-        {/* 1. Page Component (Shell) */}
+        {/* 1. Page Component (Server) */}
         <VSCodeBlock title="src/app/post/page.tsx (Server Component Shell)">
-          <span className={kw}>import</span> <span className={op}>{'{'} </span>
-          <span className={ty}>Suspense</span>
-          <span className={op}> {'}'}</span> <span className={kw}>from</span> <span className={st}>'react'</span>
+          <span className={kw}>import</span> <span className={op}>{'{ '}</span>
+          <span className={vr}>getPosts</span>
+          <span className={op}>{' }'}</span> <span className={kw}>from</span> <span className={st}>'@/features/post/api/server'</span>
           {'\n'}
-          <span className={kw}>import</span> <span className={op}>{'{'} </span>
-          <span className={ty}>PostList</span>
-          <span className={op}> {'}'}</span> <span className={kw}>from</span> <span className={st}>'@/features/post/ui/post-list'</span>
-          {'\n'}
-          <span className={kw}>import</span> <span className={op}>{'{'} </span>
-          <span className={ty}>PostForm</span>
-          <span className={op}> {'}'}</span> <span className={kw}>from</span> <span className={st}>'@/features/post/ui/post-form'</span>
+          <span className={kw}>import</span> <span className={op}>{'{ '}</span>
+          <span className={ty}>PostFeature</span>
+          <span className={op}>{' }'}</span> <span className={kw}>from</span> <span className={st}>'@/features/post/ui/post-feature'</span>
           {'\n\n'}
-          <span className={kw}>export default function</span> <span className={fn}>PostPage</span>
+          <span className={kw}>export default async function</span> <span className={fn}>PostPage</span>
           <span className={op}>() {'{\n'}</span>
           {'  '}
-          <span className={kw}>return</span> <span className={op}>({' \n'}</span>
+          <span className={cm}>{'// 1. 서버에서 SEO 및 초기 렌더링용 데이터를 페칭합니다.'}</span>
+          {'\n'}
+          {'  '}
+          <span className={bl}>const</span> <span className={vr}>initialPosts</span> <span className={op}>=</span> <span className={kw}>await</span> <span className={fn}>getPosts</span>
+          <span className={op}>(</span>
+          <span className={vr}>1</span>
+          <span className={op}>)</span>
+          {'\n\n'}
+          {'  '}
+          <span className={kw}>return</span> <span className={op}>(</span>
+          {'\n'}
           {'    '}
           <span className={op}>&lt;</span>
           <span className={bl}>div</span> <span className={vr}>className</span>
@@ -462,27 +460,116 @@ export function GuideApi() {
           <span className={op}>&gt;</span>자유게시판<span className={op}>&lt;/</span>
           <span className={bl}>h1</span>
           <span className={op}>&gt;</span>
-          <span className={cm}> {/* [GET] 리스트 조회 부분만 격리하여 로딩 처리 */}</span>
+          {'\n'}
+          {'      '}
+          <span className={cm}>{'{/* 2. 하위 트리에 Props를 내리꽂지 않고, 최상단 Feature에만 전달합니다. */}'}</span>
           {'\n'}
           {'      '}
           <span className={op}>&lt;</span>
-          <span className={ty}>Suspense</span> <span className={vr}>fallback</span>
-          <span className={op}>={'{'}&lt;</span>
-          <span className={bl}>div</span>
-          <span className={op}>&gt;</span>목록을 불러오는 중...<span className={op}>&lt;/</span>
-          <span className={bl}>div</span>
-          <span className={op}>&gt;{'}'}&gt;</span>
+          <span className={ty}>PostFeature</span> <span className={vr}>initialPosts</span>
+          <span className={op}>={'{'}</span>
+          <span className={vr}>initialPosts</span>
+          <span className={op}>{'}'}</span> <span className={op}>/&gt;</span>
           {'\n'}
-          {'        '}
-          <span className={op}>&lt;</span>
-          <span className={ty}>PostList</span> <span className={op}>/&gt;</span>
-          {'\n'}
-          {'      '}
+          {'    '}
           <span className={op}>&lt;/</span>
-          <span className={ty}>Suspense</span>
+          <span className={bl}>div</span>
           <span className={op}>&gt;</span>
           {'\n'}
-          <span className={cm}> {/* [POST] 글 작성 폼은 클라이언트 컴포넌트로 위임 */}</span>
+          {'  '}
+          <span className={op}>)</span>
+          {'\n'}
+          <span className={op}>{'}'}</span>{' '}
+        </VSCodeBlock>
+        {/* 2. Feature Component (Client Cache Seeding) */}
+        <VSCodeBlock title="src/features/post/ui/post-feature.tsx (Client - Cache Seeding)">
+          <span className={st}>'use client'</span>
+          {'\n\n'}
+          <span className={kw}>import</span> <span className={op}>{'{ '}</span>
+          <span className={vr}>useQuery</span>
+          <span className={op}>{' }'}</span> <span className={kw}>from</span> <span className={st}>'@tanstack/react-query'</span>
+          {'\n'}
+          <span className={kw}>import</span> <span className={op}>{'{ '}</span>
+          <span className={vr}>clientApi</span>
+          <span className={op}>{' }'}</span> <span className={kw}>from</span> <span className={st}>'@/lib/client-api'</span>
+          {'\n'}
+          <span className={kw}>import</span> <span className={op}>{'{ '}</span>
+          <span className={vr}>postKeys</span>
+          <span className={op}>{' }'}</span> <span className={kw}>from</span> <span className={st}>'../model/hooks/use-post'</span>
+          {'\n'}
+          <span className={kw}>import</span> <span className={op}>{'{ '}</span>
+          <span className={ty}>PostList</span>
+          <span className={op}>{' }'}</span> <span className={kw}>from</span> <span className={st}>'./post-list'</span>
+          {'\n'}
+          <span className={kw}>import</span> <span className={op}>{'{ '}</span>
+          <span className={ty}>PostForm</span>
+          <span className={op}>{' }'}</span> <span className={kw}>from</span> <span className={st}>'./post-form'</span>
+          {'\n\n'}
+          <span className={kw}>export function</span> <span className={fn}>PostFeature</span>
+          <span className={op}>{'({ '}</span>
+          <span className={vr}>initialPosts</span>
+          <span className={op}>{' }: { '}</span>
+          <span className={vr}>initialPosts</span>
+          <span className={op}>: </span>
+          <span className={ty}>Post</span>
+          <span className={op}>[] {'})'}</span> <span className={op}>{'{\n'}</span>
+          {'  '}
+          <span className={cm}>{'// 최상단에서 initialData를 주입하여 전역 캐싱'}</span>
+          {'\n'}
+          {'  '}
+          <span className={fn}>useQuery</span>
+          <span className={op}>{'({'}</span>
+          {'\n'}
+          {'    '}
+          <span className={vr}>queryKey</span>
+          <span className={op}>: </span>
+          <span className={vr}>postKeys</span>
+          <span className={op}>.</span>
+          <span className={fn}>lists</span>
+          <span className={op}>(),</span>
+          {'\n'}
+          {'    '}
+          <span className={vr}>queryFn</span>
+          <span className={op}>: ()</span> <span className={bl}>=&gt;</span> <span className={vr}>clientApi</span>
+          <span className={op}>.</span>
+          <span className={fn}>get</span>
+          <span className={op}>(</span>
+          <span className={st}>'posts'</span>
+          <span className={op}>).</span>
+          <span className={fn}>json</span>
+          <span className={op}>(),</span>
+          {'\n'}
+          {'    '}
+          <span className={vr}>initialData</span>
+          <span className={op}>: </span>
+          <span className={vr}>initialPosts</span>
+          <span className={op}>,</span>
+          {'\n'}
+          {'    '}
+          <span className={vr}>staleTime</span>
+          <span className={op}>: </span>
+          <span className={vr}>1000</span> <span className={op}>*</span> <span className={vr}>10</span>
+          <span className={op}>,</span>
+          {'\n'}
+          {'  '}
+          <span className={op}>{'})'}</span>
+          {'\n\n'}
+          {'  '}
+          <span className={cm}>{'// 자식들에게 Props를 일일이 넘겨주지 않아도 됩니다.'}</span>
+          {'\n'}
+          {'  '}
+          <span className={kw}>return</span> <span className={op}>(</span>
+          {'\n'}
+          {'    '}
+          <span className={op}>&lt;</span>
+          <span className={bl}>div</span> <span className={vr}>className</span>
+          <span className={op}>=</span>
+          <span className={st}>"space-y-4"</span>
+          <span className={op}>&gt;</span>
+          {'\n'}
+          {'      '}
+          <span className={op}>&lt;</span>
+          <span className={ty}>PostList</span> <span className={op}>/&gt;</span>
           {'\n'}
           {'      '}
           <span className={op}>&lt;</span>
@@ -498,23 +585,45 @@ export function GuideApi() {
           {'\n'}
           <span className={op}>{'}'}</span>
         </VSCodeBlock>
-
-        {/* 2. Data Fetching Component (Server) */}
-        <VSCodeBlock title="src/features/post/ui/post-list.tsx (Server Component)">
-          <span className={kw}>import</span> <span className={op}>{'{'} </span>
-          <span className={vr}>getPosts</span>
-          <span className={op}> {'}'}</span> <span className={kw}>from</span> <span className={st}>'../api/server'</span>
+        {/* 3. List Component (Client Consumer) */}
+        <VSCodeBlock title="src/features/post/ui/post-list.tsx (Client Component)">
+          <span className={st}>'use client'</span>
           {'\n\n'}
-          <span className={kw}>export async function</span> <span className={fn}>PostList</span>
+          <span className={kw}>import</span> <span className={op}>{'{ '}</span>
+          <span className={vr}>useQuery</span>
+          <span className={op}>{' }'}</span> <span className={kw}>from</span> <span className={st}>'@tanstack/react-query'</span>
+          {'\n'}
+          <span className={kw}>import</span> <span className={op}>{'{ '}</span>
+          <span className={vr}>postKeys</span>
+          <span className={op}>{' }'}</span> <span className={kw}>from</span> <span className={st}>'../model/hooks/use-post'</span>
+          {'\n\n'}
+          <span className={kw}>export function</span> <span className={fn}>PostList</span>
           <span className={op}>() {'{\n'}</span>
           {'  '}
-          <span className={bl}>const</span> <span className={vr}>posts</span> <span className={op}>=</span> <span className={kw}>await</span> <span className={fn}>getPosts</span>
-          <span className={op}>(</span>
-          <span className={vr}>1</span>
-          <span className={op}>)</span>
+          <span className={cm}>{'// Props 없이 쿼리만 호출해도, 부모가 심어둔 캐시 덕분에 즉시 렌더링됩니다'}</span>
+          {'\n'}
+          {'  '}
+          <span className={bl}>const</span> <span className={op}>{'{ '}</span>
+          <span className={vr}>data</span>
+          <span className={op}>: </span>
+          <span className={vr}>posts</span>
+          <span className={op}>{' }'}</span> <span className={op}>=</span> <span className={fn}>useQuery</span>
+          <span className={op}>{'({'}</span>
+          {'\n'}
+          {'    '}
+          <span className={vr}>queryKey</span>
+          <span className={op}>: </span>
+          <span className={vr}>postKeys</span>
+          <span className={op}>.</span>
+          <span className={fn}>lists</span>
+          <span className={op}>(),</span>
+          {'\n'}
+          {'  '}
+          <span className={op}>{'})'}</span>
           {'\n\n'}
           {'  '}
-          <span className={kw}>return</span> <span className={op}>({' \n'}</span>
+          <span className={kw}>return</span> <span className={op}>(</span>
+          {'\n'}
           {'    '}
           <span className={op}>&lt;</span>
           <span className={bl}>ul</span>
@@ -523,7 +632,7 @@ export function GuideApi() {
           {'      '}
           <span className={op}>{'{'}</span>
           <span className={vr}>posts</span>
-          <span className={op}>.</span>
+          <span className={op}>?.</span>
           <span className={fn}>map</span>
           <span className={op}>((</span>
           <span className={vr}>post</span>
@@ -536,13 +645,17 @@ export function GuideApi() {
           <span className={vr}>post</span>
           <span className={op}>.</span>
           <span className={vr}>id</span>
-          <span className={op}>
-            {'}'}&gt;{'{'}
-          </span>
+          <span className={op}>{'}'}&gt;</span>
+          {'\n'}
+          {'          '}
+          <span className={op}>{'{'}</span>
           <span className={vr}>post</span>
           <span className={op}>.</span>
           <span className={vr}>title</span>
-          <span className={op}>{'}'}&lt;/</span>
+          <span className={op}>{'}'}</span>
+          {'\n'}
+          {'        '}
+          <span className={op}>&lt;/</span>
           <span className={bl}>li</span>
           <span className={op}>&gt;</span>
           {'\n'}
@@ -559,120 +672,7 @@ export function GuideApi() {
           {'\n'}
           <span className={op}>{'}'}</span>
         </VSCodeBlock>
-
-        {/* 3. Action Component (Client) */}
-        <VSCodeBlock title="src/features/post/ui/post-form.tsx (Client Component)">
-          <span className={st}>'use client'</span>
-          {'\n\n'}
-          <span className={kw}>import</span> <span className={op}>{'{'} </span>
-          <span className={vr}>useRouter</span>
-          <span className={op}> {'}'}</span> <span className={kw}>from</span> <span className={st}>'next/navigation'</span>
-          {'\n'}
-          <span className={kw}>import</span> <span className={op}>{'{'} </span>
-          <span className={vr}>useCreatePost</span>
-          <span className={op}> {'}'}</span> <span className={kw}>from</span> <span className={st}>'../model/hooks/use-post'</span>
-          {'\n\n'}
-          <span className={kw}>export function</span> <span className={fn}>PostForm</span>
-          <span className={op}>() {'{\n'}</span>
-          {'  '}
-          <span className={bl}>const</span> <span className={vr}>router</span> <span className={op}>=</span> <span className={fn}>useRouter</span>
-          <span className={op}>()</span>
-          {'\n'}
-          {'  '}
-          <span className={cm}>// TanStack Query의 mutate와 isPending을 꺼내 씁니다.</span>
-          {'\n'}
-          {'  '}
-          <span className={bl}>const</span> <span className={op}>{'{'} </span>
-          <span className={vr}>mutate</span>
-          <span className={op}>, </span>
-          <span className={vr}>isPending</span>
-          <span className={op}> {'}'}</span> <span className={op}>=</span> <span className={fn}>useCreatePost</span>
-          <span className={op}>()</span>
-          {'\n\n'}
-          {'  '}
-          <span className={bl}>const</span> <span className={fn}>handleSubmit</span> <span className={op}>=</span> <span className={op}>()</span> <span className={bl}>=&gt;</span> <span className={op}>{'{\n'}</span>
-          {'    '}
-          <span className={vr}>mutate</span>
-          <span className={op}>({'{'} </span>
-          <span className={vr}>title</span>
-          <span className={op}>: </span>
-          <span className={st}>'새 글'</span>
-          <span className={op}>, </span>
-          <span className={vr}>content</span>
-          <span className={op}>: </span>
-          <span className={st}>'내용입니다'</span>
-          <span className={op}>
-            {' '}
-            {'}'}, {'{\n'}
-          </span>
-          {'      '}
-          <span className={fn}>onSuccess</span>
-          <span className={op}>: (</span>
-          <span className={vr}>data</span>
-          <span className={op}>)</span> <span className={bl}>=&gt;</span> <span className={op}>{'{\n'}</span>
-          {'        '}
-          <span className={cm}>// 성공 후 라우팅 이동 등 화면 제어는 여기서 처리</span>
-          {'\n'}
-          {'        '}
-          <span className={vr}>router</span>
-          <span className={op}>.</span>
-          <span className={fn}>push</span>
-          <span className={op}>(</span>
-          <span className={st}>`/post/</span>
-          <span className={bl}>${'{'}</span>
-          <span className={vr}>data</span>
-          <span className={op}>.</span>
-          <span className={vr}>id</span>
-          <span className={op}>{'}'}</span>
-          <span className={st}>`</span>
-          <span className={op}>)</span>
-          {'\n'}
-          {'      '}
-          <span className={op}>{'}\n'}</span>
-          {'    '}
-          <span className={op}>{'}'})</span>
-          {'\n'}
-          {'  '}
-          <span className={op}>{'}'}</span>
-          {'\n\n'}
-          {'  '}
-          <span className={kw}>return</span> <span className={op}>({' \n'}</span>
-          {'    '}
-          <span className={op}>&lt;</span>
-          <span className={bl}>button</span>
-          {'\n'}
-          {'      '}
-          <span className={vr}>onClick</span>
-          <span className={op}>={'{'}</span>
-          <span className={fn}>handleSubmit</span>
-          <span className={op}>{'}'}</span>
-          {'\n'}
-          {'      '}
-          <span className={vr}>disabled</span>
-          <span className={op}>={'{'}</span>
-          <span className={vr}>isPending</span>
-          <span className={op}>{'}'}</span>
-          {'\n'}
-          {'    '}
-          <span className={op}>&gt;</span>
-          {'\n'}
-          {'      '}
-          <span className={op}>{'{'}</span>
-          <span className={vr}>isPending</span> <span className={op}>?</span> <span className={st}>'게시 중...'</span> <span className={op}>:</span> <span className={st}>'게시글 작성'</span>
-          <span className={op}>{'}'}</span>
-          {'\n'}
-          {'    '}
-          <span className={op}>&lt;/</span>
-          <span className={bl}>button</span>
-          <span className={op}>&gt;</span>
-          {'\n'}
-          {'  '}
-          <span className={op}>)</span>
-          {'\n'}
-          <span className={op}>{'}'}</span>
-        </VSCodeBlock>
       </section>
-
       {/* --- STEP 5 --- */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">

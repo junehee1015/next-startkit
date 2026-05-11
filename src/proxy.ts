@@ -4,35 +4,34 @@ import { ROUTES } from './constants/routes'
 
 const refreshLocks = new Map<string, Promise<string | null>>()
 
-async function refreshAccessToken(refreshToken: string) {
+async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   if (refreshLocks.has(refreshToken)) {
-    return refreshLocks.get(refreshToken)
+    return refreshLocks.get(refreshToken) as Promise<string | null>
   }
 
   const refreshPromise = (async () => {
     try {
-      // 내부 백엔드가 아닌 실제 백엔드 직접 호출
-      // const response = await fetch(`${origin}/api/refresh`, {
+      // 실제 백엔드 직접 호출
+      // const targetUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`
+      // const response = await fetch(targetUrl, {
       //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ refreshToken }),
       //   cache: 'no-store',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     Cookie: `refreshToken=${refreshToken}`,
-      //   },
       // })
 
-      // if (response.ok) {
-      //   const data = await response.json()
-      //   return data.accessToken as string
-      // }
+      // if (!response.ok) throw new Error('Token Refresh Failed')
+
+      // const data = (await response.json()) as { accessToken: string }
+      // return data.accessToken
 
       await new Promise((resolve) => setTimeout(resolve, 500))
       return 'mock-new-access-token-' + Date.now()
     } catch (error) {
-      console.error('[Proxy] Silent Refresh Failed:', error)
+      console.error('Refresh Failed:', error)
       return null
     } finally {
-      refreshLocks.delete(refreshToken)
+      refreshLocks.delete(refreshToken) // 완료 후 락 해제
     }
   })()
 
@@ -47,15 +46,14 @@ export async function proxy(request: NextRequest) {
   const refreshToken = request.cookies.get('refreshToken')?.value
   const user = request.cookies.get('user')?.value
 
-  let isRefresh: boolean = false
+  let isRefreshed = false
 
   if (!accessToken && refreshToken && user) {
     const newAccessToken = await refreshAccessToken(refreshToken)
 
     if (newAccessToken) {
       accessToken = newAccessToken
-      isRefresh = true
-
+      isRefreshed = true
       request.cookies.set('accessToken', accessToken)
       request.headers.set('Authorization', `Bearer ${accessToken}`)
       request.headers.set('cookie', request.cookies.toString())
@@ -66,39 +64,21 @@ export async function proxy(request: NextRequest) {
   const isPublic = ROUTES.PUBLIC.some((route) => (route === '/' ? pathname === '/' : pathname.startsWith(route)))
   const isGuestOnly = ROUTES.GUEST_ONLY.some((route) => pathname.startsWith(route))
 
-  if (isGuestOnly && isAuthenticated) {
-    const redirectResponse = NextResponse.redirect(new URL('/', request.url))
-
-    if (isRefresh && accessToken) {
-      redirectResponse.cookies.set('accessToken', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 15,
-      })
-    }
-
-    return redirectResponse
-  }
-
-  if (!isPublic && !isGuestOnly && !isAuthenticated) {
-    const loginUrl = new URL('/login', request.url)
-    const redirectResponse = NextResponse.redirect(loginUrl)
-    redirectResponse.cookies.delete('accessToken')
-    redirectResponse.cookies.delete('refreshToken')
-    redirectResponse.cookies.delete('user')
-    return redirectResponse
-  }
-
-  const nextResponse = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+  let response = NextResponse.next({
+    request: { headers: request.headers },
   })
 
-  if (isRefresh && accessToken) {
-    nextResponse.cookies.set('accessToken', accessToken, {
+  if (isGuestOnly && isAuthenticated) {
+    response = NextResponse.redirect(new URL('/', request.url))
+  } else if (!isPublic && !isGuestOnly && !isAuthenticated) {
+    response = NextResponse.redirect(new URL('/login', request.url))
+    response.cookies.delete('accessToken')
+    response.cookies.delete('refreshToken')
+    response.cookies.delete('user')
+  }
+
+  if (isRefreshed && accessToken) {
+    response.cookies.set('accessToken', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -107,7 +87,7 @@ export async function proxy(request: NextRequest) {
     })
   }
 
-  return nextResponse
+  return response
 }
 
 export const config = {
