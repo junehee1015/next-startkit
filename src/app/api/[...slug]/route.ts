@@ -57,15 +57,18 @@ async function catchAllProxy(req: NextRequest, props: { params: Promise<{ slug: 
     if (!refreshLocks.has(refreshToken)) {
       const refreshPromise = (async () => {
         try {
-          const res = await fetch(`${API_URL}/auth/refresh`, {
+          const response = await fetch(`${API_URL}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken }),
           })
-          if (!res.ok) throw new Error('Unauthorized')
-          const data = (await res.json()) as { accessToken: string }
+
+          if (!response.ok) throw new Error('Unauthorized')
+
+          const data = (await response.json()) as { accessToken: string }
           return data.accessToken
-        } catch {
+        } catch (error) {
+          console.error('Refresh Failed:', error)
           return null
         } finally {
           refreshLocks.delete(refreshToken)
